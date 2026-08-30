@@ -31,10 +31,29 @@ $WorkDir  = Join-Path ([System.IO.Path]::GetTempPath()) ("sgwiki-" + [guid]::New
 # Автор: сначала GIT_AUTHOR_*, затем git-конфиг исходного репозитория, затем запасной
 # вариант. Та же логика, что и в publish-wiki.sh.
 function Read-SourceGitConfig([string]$Key) {
-    $v = & git -C $PSScriptRoot config $Key 2>$null
-    if ($LASTEXITCODE -ne 0) { return $null }
-    if ([string]::IsNullOrWhiteSpace($v)) { return $null }
-    return "$v".Trim()
+    # Defensive on purpose: $ErrorActionPreference is "Stop" here, and redirecting a
+    # native command's stderr under that setting can turn stderr output into a
+    # terminating error. Lower the preference for the call and swallow failures, so
+    # a missing key or a missing git binary just means "no value", not a crash.
+    # Намеренно защитно: $ErrorActionPreference здесь "Stop", а перенаправление stderr
+    # внешней команды в этом режиме может превратить вывод в завершающую ошибку.
+    # Снижаем предпочтение на время вызова: нет ключа или нет git — значит просто
+    # "нет значения", а не падение.
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    try {
+        $v = & git -C $PSScriptRoot config $Key 2>$null
+        if ($LASTEXITCODE -ne 0) { return $null }
+        $s = ($v | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($s)) { return $null }
+        return $s
+    }
+    catch {
+        return $null
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
 }
 
 $GitName = $env:GIT_AUTHOR_NAME
@@ -96,7 +115,11 @@ try {
             exit 0
         }
 
-        git -c user.name="$GitName" -c user.email="$GitMail" commit --quiet -m "Update SG_Traders configuration guide (RU/EN)"
+        # Quote each -c argument as a whole: with user.name="First Last" an unquoted
+        # form would split on the space and hand git two broken arguments.
+        # Кавычки вокруг аргумента целиком: при user.name="First Last" незакавыченная
+        # форма развалилась бы по пробелу и передала git два битых аргумента.
+        git -c "user.name=$GitName" -c "user.email=$GitMail" commit --quiet -m "Update SG_Traders configuration guide (RU/EN)"
         if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
 
         git push --quiet origin HEAD

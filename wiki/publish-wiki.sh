@@ -3,7 +3,7 @@
 # Публикует страницы из ./pages/ в GitHub-вики этого репозитория.
 #
 # Usage / Использование:
-#   ./publish-wiki.sh                       # Karpenator/Syndicate-Project
+#   ./publish-wiki.sh                       # Karpenator/SG-Traders-WIKI
 #   ./publish-wiki.sh Owner/Other-Repo      # another repository
 #
 # One-time preparation in the browser (the wiki git repository does not exist
@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-REPO="${1:-Karpenator/Syndicate-Project}"
+REPO="${1:-Karpenator/SG-Traders-WIKI}"
 WIKI_URL="https://github.com/${REPO}.wiki.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PAGES_DIR="${SCRIPT_DIR}/pages"
@@ -26,6 +26,16 @@ WORK_DIR="$(mktemp -d)"
 
 cleanup() { rm -rf "${WORK_DIR}"; }
 trap cleanup EXIT
+
+# Author identity: GIT_AUTHOR_* win, then the source repository's own git config
+# (the wiki clone lives in a temp folder and has no config of its own),
+# then a generic fallback.
+# Автор: сначала GIT_AUTHOR_*, затем git-конфиг исходного репозитория (клон вики
+# лежит во временной папке и своего конфига не имеет), затем запасной вариант.
+GIT_NAME="${GIT_AUTHOR_NAME:-$(git -C "${SCRIPT_DIR}" config user.name 2>/dev/null || true)}"
+GIT_MAIL="${GIT_AUTHOR_EMAIL:-$(git -C "${SCRIPT_DIR}" config user.email 2>/dev/null || true)}"
+GIT_NAME="${GIT_NAME:-wiki-publisher}"
+GIT_MAIL="${GIT_MAIL:-wiki-publisher@local}"
 
 if [ ! -d "${PAGES_DIR}" ]; then
     echo "ERROR: ${PAGES_DIR} not found. Run this script from the wiki/ folder." >&2
@@ -55,6 +65,21 @@ echo "==> Copying $(ls -1 "${PAGES_DIR}"/*.md | wc -l | tr -d ' ') pages"
 cp -f "${PAGES_DIR}"/*.md "${WORK_DIR}/wiki/"
 
 cd "${WORK_DIR}/wiki"
+
+# Mirror deletions: a page removed from pages/ must disappear from the wiki too.
+# cp only adds, so without this a deleted page stays published forever.
+# Only *.md files are touched; anything else in the wiki (images, etc.) is left alone.
+# Зеркалируем удаления: страница, удалённая из pages/, должна исчезнуть и из вики.
+# cp только добавляет, поэтому без этого удалённая страница остаётся опубликованной.
+# Задеваются только *.md; остальное в вики (картинки и т.п.) не трогаем.
+for f in *.md; do
+    [ -e "$f" ] || continue
+    if [ ! -f "${PAGES_DIR}/${f}" ]; then
+        echo "    removing ${f} (no longer in pages/)"
+        rm -f "$f"
+    fi
+done
+
 git add -A
 
 if git diff --cached --quiet; then
@@ -62,8 +87,8 @@ if git diff --cached --quiet; then
     exit 0
 fi
 
-git -c user.name="${GIT_AUTHOR_NAME:-$(git config user.name || echo 'wiki-publisher')}" \
-    -c user.email="${GIT_AUTHOR_EMAIL:-$(git config user.email || echo 'wiki-publisher@local')}" \
+git -c user.name="${GIT_NAME}" \
+    -c user.email="${GIT_MAIL}" \
     commit --quiet -m "Update SG_Traders configuration guide (RU/EN)"
 
 git push --quiet origin HEAD

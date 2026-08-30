@@ -1,8 +1,8 @@
 # SG_Traders Wiki / Вики SG_Traders
 
-Bilingual (RU/EN) configuration guide for the [SG_Traders](../SG_Traders) mod, ready to be published as a GitHub wiki.
+Bilingual (RU/EN) configuration guide for the **SG_Traders** mod, published at <https://github.com/Karpenator/SG-Traders-WIKI/wiki>.
 
-Двуязычное (RU/EN) руководство по настройке мода [SG_Traders](../SG_Traders), готовое к публикации в GitHub-вики.
+Двуязычное (RU/EN) руководство по настройке мода **SG_Traders**, опубликовано на <https://github.com/Karpenator/SG-Traders-WIKI/wiki>.
 
 ---
 
@@ -33,14 +33,18 @@ A GitHub wiki is a separate git repository (`<repo>.wiki.git`), and GitHub only 
 
 GitHub-вики — это отдельный git-репозиторий (`<repo>.wiki.git`), и GitHub создаёт его **только после** того, как вики включена и первая страница сохранена через веб-интерфейс. Эту часть один раз делает кто-то с правами администратора репозитория.
 
-### Step 1 — once, in the browser / Шаг 1 — один раз, в браузере
+**✅ Already done for this repository.** Wikis are enabled on `Karpenator/SG-Traders-WIKI` and `https://github.com/Karpenator/SG-Traders-WIKI.wiki.git` exists, so you can go straight to the publisher below.
 
-1. Open <https://github.com/Karpenator/Syndicate-Project/settings> → **General** → **Features** → tick **Wikis** → **Save changes**.
-   Откройте <https://github.com/Karpenator/Syndicate-Project/settings> → **General** → **Features** → включите **Wikis** → **Save changes**.
+**✅ Для этого репозитория уже сделано.** Вики в `Karpenator/SG-Traders-WIKI` включена, `https://github.com/Karpenator/SG-Traders-WIKI.wiki.git` существует — можно сразу запускать публикацию.
+
+### Publishing to another repository — one-time step in the browser / Публикация в другой репозиторий — одноразовый шаг в браузере
+
+1. Open <https://github.com/Owner/Repo/settings> → **General** → **Features** → tick **Wikis** → **Save changes**.
+   Откройте <https://github.com/Owner/Repo/settings> → **General** → **Features** → включите **Wikis** → **Save changes**.
 2. Open the **Wiki** tab → **Create the first page** → **Save page** (any content, it will be overwritten).
    Откройте вкладку **Wiki** → **Create the first page** → **Save page** (содержимое любое, оно перезапишется).
 
-### Step 2 — run the publisher / Шаг 2 — запустить публикацию
+### Run the publisher / Запустить публикацию
 
 ```bash
 # Linux / macOS / Git Bash
@@ -54,9 +58,9 @@ cd wiki
 .\publish-wiki.ps1
 ```
 
-The script clones `https://github.com/Karpenator/Syndicate-Project.wiki.git` into a temporary folder, copies everything from `pages/`, commits and pushes. It uses your existing GitHub credentials — the same ones `git push` uses for this repository. Nothing is written anywhere else.
+The script clones `https://github.com/Karpenator/SG-Traders-WIKI.wiki.git` into a temporary folder, copies everything from `pages/`, commits and pushes. It uses your existing GitHub credentials — the same ones `git push` uses for this repository. Nothing is written anywhere else.
 
-Скрипт клонирует `https://github.com/Karpenator/Syndicate-Project.wiki.git` во временную папку, копирует всё из `pages/`, делает коммит и пушит. Используются ваши обычные учётные данные GitHub — те же, что и для `git push` в этом репозитории. Больше ничего никуда не пишется.
+Скрипт клонирует `https://github.com/Karpenator/SG-Traders-WIKI.wiki.git` во временную папку, копирует всё из `pages/`, делает коммит и пушит. Используются ваши обычные учётные данные GitHub — те же, что и для `git push` в этом репозитории. Больше ничего никуда не пишется.
 
 For another repository: `./publish-wiki.sh Owner/Repo` or `.\publish-wiki.ps1 -Repo Owner/Repo`.
 
@@ -76,9 +80,9 @@ Edit the files in `pages/`, then run the publisher again. It skips the push when
 
 Правьте файлы в `pages/` и снова запускайте публикацию. Если изменений нет, скрипт ничего не пушит — запускать его после каждой правки безопасно.
 
-The guide describes the mod as it is in this repository. If you change the config fields in `SG_Traders/scripts/3_Game/SGTradersConfig.c`, update the matching page — the field tables are generated from that file.
+The field tables in the pages were written from `SGTradersConfig.c` in the mod's source tree (this repository holds documentation only — the mod itself lives elsewhere). If the config fields change there, update the matching page.
 
-Руководство описывает мод в том виде, в каком он лежит в репозитории. Если вы меняете поля конфига в `SG_Traders/scripts/3_Game/SGTradersConfig.c`, обновите соответствующую страницу — таблицы полей составлены по этому файлу.
+Таблицы полей на страницах составлены по файлу `SGTradersConfig.c` из исходников мода (в этом репозитории только документация — сам мод лежит отдельно). Если поля конфига там меняются, обновите соответствующую страницу.
 
 ---
 

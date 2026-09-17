@@ -29,6 +29,7 @@ One entry = one row in the assortment:
 | `MaxStock` | integer | `-1` | How many pieces **one player** may buy per restock cycle. `-1` = unlimited. |
 | `QuestUnlock` | string | `""` | ID of a quest from the `SG_Quest` mod. Empty — available to everyone. |
 | `Category` | string | `""` | Which filter tab the item goes to. Empty — detected automatically. |
+| `VehicleAttachments` | array of strings | `[]` | **Only for vehicles.** Kit spawned on the vehicle. Each entry is an attachment classname; **duplicates mean multiple pieces**. Supports `"Class:Qty"` shorthand (e.g. `"CivSedanWheel:4"`). Empty or omitted = legacy auto-equip; **non-empty completely replaces** the legacy kit. See Vehicles below. |
 
 ### ⚠️ `MaxStock` is a per-player limit, not the trader's warehouse
 
@@ -78,6 +79,55 @@ Until the player completes the quest `QUEST_NIGHT_HUNT`, the row is invisible an
 
 **Important:** `SG_Traders` itself knows nothing about quests — it only asks the `SG_Quest` mod whether the quest is done. If `SG_Quest` is not installed, **any** offer with a non-empty `QuestUnlock` stays locked for everyone, forever. Do not leave a filled `QuestUnlock` if there is no quest mod on the server.
 
+### Vehicles — `VehicleAttachments`
+
+When `ClassName` is a vehicle, the offer spawns as a **vehicle in the world** instead of an item in inventory. How to tell: `IsVehicle` checks `Transport` / `Car` / `Boat` / `Helicopter` family, `CarScript` etc., plus the `simulation` field in `CfgVehicles` — so modded vehicles with a vehicle simulation are also recognised.
+
+```json
+{
+    "ClassName": "CivilianSedan",
+    "Price": 85000,
+    "LoyaltyLevel": 2,
+    "MaxStock": 1,
+    "QuestUnlock": "",
+    "Category": "",
+    "VehicleAttachments": [
+        "CivSedanWheel:4",
+        "CivSedanDoors_Driver_Black",
+        "CivSedanDoors_CoDriver_Black",
+        "CivSedanDoors_BackLeft_Black",
+        "CivSedanDoors_BackRight_Black",
+        "CivSedanHood_Black",
+        "CivSedanTrunk_Black",
+        "CarBattery",
+        "CarRadiator",
+        "SparkPlug",
+        "HeadlightH7:2"
+    ]
+}
+```
+
+* **Empty or omitted `VehicleAttachments`** (`[]` or missing) — legacy auto-equip: the mod builds a vanilla kit from the vehicle family (e.g. `CivilianSedan` → 4×`CivSedanWheel` + 4 doors + hood + trunk in the offer’s colour variant; `Truck_01` → `Wheel`×2 + `WheelDouble`×4 …; modded vehicle → `OnDebugSpawn`), **plus** a battery / radiator / plug / 2 headlights. Same as before the field existed.
+* **Non-empty** — the list **fully replaces** the legacy kit: what is listed is what appears. No implicit doors, wheels or battery. You must list **everything** the vehicle needs (with correct colour suffix, e.g. `_Black`, `_BlueRust`).
+* **Shorthand `"Class:Qty"`** — `"HeadlightH7:2"` equals two `HeadlightH7` lines, `"CivSedanWheel:4"` equals four wheels. `Qty` is clamped to `1…20`. Both forms can be mixed.
+* Fluids and health are still filled automatically in both modes: **10 % fuel**, **coolant / oil / brake = full**, battery charged, plug at full health.
+* Invalid classnames inside the list are removed on load with `WARNING: ... vehicle attachment 'X' invalid — removed`.
+* Where the vehicle appears is configured per trader via `VehicleSpawnPosition` / `VehicleSpawnOrientation` / `VehicleSpawnRadius` — see [Trader File](EN-Trader-File).
+
+In the board a vehicle is shown in a **256×128** cell (weapons are 128×64, plain items 64×64) and the centre preview is spawned with **all listed attachments** attached, not an empty hull.
+
+The Mechanic’s out-of-the-box set is a working reference:
+
+| Vehicle | Kit (abridged) | Price | Lvl |
+|---|---|---|---|
+| `CivilianSedan` | `CivSedanWheel:4` + 4 black doors/hood/trunk + battery/radiator/plug + `HeadlightH7:2` | 85 000₽ | 2 |
+| `OffroadHatchback` | `HatchbackWheel:4` + blue doors/hood/trunk + battery… | 95 000₽ | 2 |
+| `Hatchback_02` | `Hatchback_02_Wheel:4` + black doors/hood/trunk + battery… | 90 000₽ | 2 |
+| `Sedan_02` | `Sedan_02_Wheel:4` + grey doors/hood/trunk + battery… | 105 000₽ | 3 |
+| `Offroad_02` | `Offroad_02_Wheel:4` + doors/hood/trunk + battery… | 125 000₽ | 3 |
+| `Truck_01_Covered` | `Truck_01_Wheel:2` + `WheelDouble:4` + blue doors/hood + `TruckBattery`/`TruckRadiator`/`GlowPlug` | 180 000₽ | 3 |
+| `Truck_02` | same heavy-truck kit as above | 190 000₽ | 3 |
+
 ---
 
 ## `Barters` — item for item
@@ -105,6 +155,7 @@ The fields are the same as for `Items`, except there is no `Price` — instead t
 | `ClassName` | What the player **receives** |
 | `Cost` | What the player **gives**: `ClassName` + `Quantity` |
 | `LoyaltyLevel`, `MaxStock`, `QuestUnlock`, `Category` | Behave exactly like on regular items |
+| `VehicleAttachments` | Same as on `Items`: **only for vehicle rewards**, fully replaces the legacy kit when non-empty. Empty = legacy auto-equip. See Vehicles above. |
 
 Rules:
 
@@ -112,6 +163,31 @@ Rules:
 * `Quantity` must be greater than zero. A line with `Quantity: 0` or a broken classname is removed.
 * If no `Cost` lines survive validation, **the whole barter is removed** with a warning in the log.
 * Items in `Cost` do not have to be part of the trader's assortment — you can demand anything.
+* **Vehicle barter rewards** work the same as vehicle items: add `VehicleAttachments` to the barter when `ClassName` is a vehicle. The barter preview and the spawned vehicle use that kit; empty = legacy auto-equip.
+
+```json
+{
+    "ClassName": "Truck_01_Covered_Blue",
+    "LoyaltyLevel": 3,
+    "MaxStock": 1,
+    "QuestUnlock": "",
+    "Category": "",
+    "Cost": [
+        { "ClassName": "CarBattery", "Quantity": 1 },
+        { "ClassName": "MetalPlate", "Quantity": 4 }
+    ],
+    "VehicleAttachments": [
+        "Truck_01_Wheel:2",
+        "Truck_01_WheelDouble:4",
+        "Truck_01_Door_1_1_Blue",
+        "Truck_01_Door_2_1_Blue",
+        "TruckBattery",
+        "TruckRadiator",
+        "GlowPlug",
+        "HeadlightH7:2"
+    ]
+}
+```
 
 ### How much turnover a barter gives
 
